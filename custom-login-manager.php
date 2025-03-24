@@ -3,7 +3,8 @@
 Plugin Name: WP Login Redirect & Security
 Description: Redirects the login page and allows custom login redirects.
 Version: 1.2
-Author: Your Name
+Author: Raihan | ELVO Web Studio
+Author URI: https://www.elvoweb.com
 */
 
 // Exit if accessed directly
@@ -60,7 +61,7 @@ function wplr_settings_page() {
     }
     ?>
     <div class="wrap">
-        <h2><span class="dashicons dashicons-lock"></span> Login Redirect & Security</h2>
+        <h2><span class="dashicons dashicons-lock"></span> Login Redirect & Security - By ELVO Web Studio</h2>
         <form method="post" style="max-width: 500px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
             <?php wp_nonce_field('wplr_settings_nonce'); ?>
             <label><strong>Enable Custom Login URL:</strong></label>
@@ -74,6 +75,7 @@ function wplr_settings_page() {
             <br><br>
             <input type="submit" value="Save Settings" class="button button-primary">
         </form>
+        <p style="margin-top: 20px; font-size: 14px; color: #666;">Developed by <a href="https://www.elvoweb.com" target="_blank">ELVO Web Studio</a></p>
     </div>
     <?php
 }
