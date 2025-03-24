@@ -80,12 +80,24 @@ function wplr_settings_page() {
     <?php
 }
 
-// Redirect login page
+// Redirect login page, but exclude logout requests
 function wplr_redirect_login_page() {
     $settings = get_option(WPLR_OPTION_NAME);
-    if ($settings['enable_redirect'] && strpos($_SERVER['REQUEST_URI'], 'wp-login.php') !== false) {
-        wp_redirect(home_url('/' . $settings['custom_login_url']));
-        exit;
+    
+    // Check if redirection is enabled
+    if ($settings['enable_redirect']) {
+        $request_uri = $_SERVER['REQUEST_URI'];
+        
+        // Allow logout to work properly
+        if (strpos($request_uri, 'wp-login.php?action=logout') !== false) {
+            return;
+        }
+        
+        // Redirect login page
+        if (strpos($request_uri, 'wp-login.php') !== false) {
+            wp_redirect(home_url('/' . $settings['custom_login_url']));
+            exit;
+        }
     }
 }
 ?>
