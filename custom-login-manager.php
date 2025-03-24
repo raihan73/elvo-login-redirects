@@ -2,7 +2,7 @@
 /*
 Plugin Name: WP Login Redirect & Security
 Description: Redirects the login page and allows custom login redirects.
-Version: 1.1
+Version: 1.2
 Author: Your Name
 */
 
@@ -28,6 +28,7 @@ function take_plugin_action(){
 // Plugin activation: Set default options
 function wplr_activate() {
     $default_settings = array(
+        'enable_redirect' => false,
         'custom_login_url' => 'my-login',
         'redirect_after_login' => home_url()
     );
@@ -51,6 +52,7 @@ function wplr_settings_page() {
     $settings = get_option(WPLR_OPTION_NAME);
     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         check_admin_referer('wplr_settings_nonce');
+        $settings['enable_redirect'] = isset($_POST['enable_redirect']) ? true : false;
         $settings['custom_login_url'] = sanitize_text_field($_POST['custom_login_url']);
         $settings['redirect_after_login'] = esc_url_raw($_POST['redirect_after_login']);
         update_option(WPLR_OPTION_NAME, $settings);
@@ -61,6 +63,9 @@ function wplr_settings_page() {
         <h2><span class="dashicons dashicons-lock"></span> Login Redirect & Security</h2>
         <form method="post" style="max-width: 500px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
             <?php wp_nonce_field('wplr_settings_nonce'); ?>
+            <label><strong>Enable Custom Login URL:</strong></label>
+            <input type="checkbox" name="enable_redirect" value="1" <?php checked($settings['enable_redirect'], true); ?>>
+            <br><br>
             <label><strong>Custom Login URL:</strong></label>
             <input type="text" name="custom_login_url" value="<?php echo esc_attr($settings['custom_login_url']); ?>" class="regular-text">
             <br><br>
@@ -76,7 +81,7 @@ function wplr_settings_page() {
 // Redirect login page
 function wplr_redirect_login_page() {
     $settings = get_option(WPLR_OPTION_NAME);
-    if (strpos($_SERVER['REQUEST_URI'], 'wp-login.php') !== false) {
+    if ($settings['enable_redirect'] && strpos($_SERVER['REQUEST_URI'], 'wp-login.php') !== false) {
         wp_redirect(home_url('/' . $settings['custom_login_url']));
         exit;
     }
