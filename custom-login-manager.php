@@ -1,0 +1,84 @@
+<?php
+/*
+Plugin Name: WP Login Redirect & Security
+Description: Redirects the login page and allows custom login redirects.
+Version: 1.1
+Author: Your Name
+*/
+
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Define plugin constants
+define('WPLR_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('WPLR_PLUGIN_URL', plugin_dir_url(__FILE__));
+
+define('WPLR_OPTION_NAME', 'wplr_settings');
+
+take_plugin_action();
+function take_plugin_action(){
+    register_activation_hook(__FILE__, 'wplr_activate');
+    register_deactivation_hook(__FILE__, 'wplr_deactivate');
+    add_action('admin_menu', 'wplr_create_menu');
+    add_action('init', 'wplr_redirect_login_page');
+}
+
+// Plugin activation: Set default options
+function wplr_activate() {
+    $default_settings = array(
+        'custom_login_url' => 'my-login',
+        'redirect_after_login' => home_url()
+    );
+    if (!get_option(WPLR_OPTION_NAME)) {
+        update_option(WPLR_OPTION_NAME, $default_settings);
+    }
+}
+
+// Plugin deactivation: Cleanup settings
+function wplr_deactivate() {
+    delete_option(WPLR_OPTION_NAME);
+}
+
+// Create admin menu
+function wplr_create_menu() {
+    add_menu_page('Login Redirect Settings', 'Login Redirect', 'manage_options', 'wplr-settings', 'wplr_settings_page', 'dashicons-lock');
+}
+
+// Admin settings page
+function wplr_settings_page() {
+    $settings = get_option(WPLR_OPTION_NAME);
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        check_admin_referer('wplr_settings_nonce');
+        $settings['custom_login_url'] = sanitize_text_field($_POST['custom_login_url']);
+        $settings['redirect_after_login'] = esc_url_raw($_POST['redirect_after_login']);
+        update_option(WPLR_OPTION_NAME, $settings);
+        echo '<div class="updated"><p>Settings updated.</p></div>';
+    }
+    ?>
+    <div class="wrap">
+        <h2><span class="dashicons dashicons-lock"></span> Login Redirect & Security</h2>
+        <form method="post" style="max-width: 500px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+            <?php wp_nonce_field('wplr_settings_nonce'); ?>
+            <label><strong>Custom Login URL:</strong></label>
+            <input type="text" name="custom_login_url" value="<?php echo esc_attr($settings['custom_login_url']); ?>" class="regular-text">
+            <br><br>
+            <label><strong>Redirect After Login:</strong></label>
+            <input type="text" name="redirect_after_login" value="<?php echo esc_url($settings['redirect_after_login']); ?>" class="regular-text">
+            <br><br>
+            <input type="submit" value="Save Settings" class="button button-primary">
+        </form>
+    </div>
+    <?php
+}
+
+// Redirect login page
+function wplr_redirect_login_page() {
+    $settings = get_option(WPLR_OPTION_NAME);
+    if (strpos($_SERVER['REQUEST_URI'], 'wp-login.php') !== false) {
+        wp_redirect(home_url('/' . $settings['custom_login_url']));
+        exit;
+    }
+}
+?>
