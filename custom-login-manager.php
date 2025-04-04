@@ -1,10 +1,12 @@
 <?php
 /*
-Plugin Name: WP Login Redirect & Security
-Description: Redirects the login page and allows custom login redirects.
-Version: 1.2
-Author: Raihan | ELVO Web Studio
-Author URI: https://www.elvoweb.com
+Plugin Name: ELVO Social Share Float
+Plugin URI: https://www.elvoweb.com/
+Description: A simple floating social media share button plugin.
+Version: 1.1.1
+Author: ELVO Web Studio
+Author URI: https://www.elvoweb.com/
+License: GPL2
 */
 
 // Exit if accessed directly
@@ -100,4 +102,17 @@ function wplr_redirect_login_page() {
         }
     }
 }
+
+//plugin update checker
+require plugin_dir_path(__FILE__) . 'plugin-update-checker/plugin-update-checker.php';
+
+$myUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
+    'https://github.com/raihan73/custom-login-manager/',
+    __FILE__,
+    'custom-login-manager'
+);
+
+// Optional if you're using GitHub Releases:
+$myUpdateChecker->getVcsApi()->enableReleaseAssets();
+
 ?>
