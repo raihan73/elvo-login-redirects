@@ -1,9 +1,9 @@
 <?php
 /*
-Plugin Name: ELVO Social Share Float
+Plugin Name: ELVO Login Redirect & Security
 Plugin URI: https://www.elvoweb.com/
-Description: A simple floating social media share button plugin.
-Version: 1.1.1
+Description: Redirects the login page and allows custom login redirects.
+Version: 1.1.2
 Author: ELVO Web Studio
 Author URI: https://www.elvoweb.com/
 License: GPL2
