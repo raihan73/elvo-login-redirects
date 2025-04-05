@@ -1,118 +1,124 @@
 <?php
-/*
-Plugin Name: ELVO Login Redirect & Security
-Plugin URI: https://www.elvoweb.com/
-Description: Redirects the login page and allows custom login redirects.
-Version: 1.1.2
-Author: ELVO Web Studio
-Author URI: https://www.elvoweb.com/
-License: GPL2
-*/
+/**
+ * Plugin Name: ELVO Login Redirects
+ * Description: Redirects the default login page to a custom page. Allows admin configuration.
+ * Version: 1.2.0
+ * Author: ELVO Web Studio
+ * Author URI: https://www.elvoweb.com
+ * Plugin URI: https://www.elvoweb.com
+ * Text Domain: elvo-login-redirects
+ */
 
-// Exit if accessed directly
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // No direct access allowed.
 }
 
-// Define plugin constants
-define('WPLR_PLUGIN_DIR', plugin_dir_path(__FILE__));
-define('WPLR_PLUGIN_URL', plugin_dir_url(__FILE__));
+class ELVO_LoginRedirects {
 
-define('WPLR_OPTION_NAME', 'wplr_settings');
+    private static $instance = null;
+    private $option_key = 'elvo_login_redirects_settings';
 
-take_plugin_action();
-function take_plugin_action(){
-    register_activation_hook(__FILE__, 'wplr_activate');
-    register_deactivation_hook(__FILE__, 'wplr_deactivate');
-    add_action('admin_menu', 'wplr_create_menu');
-    add_action('init', 'wplr_redirect_login_page');
-}
-
-// Plugin activation: Set default options
-function wplr_activate() {
-    $default_settings = array(
-        'enable_redirect' => false,
-        'custom_login_url' => 'my-login',
-        'redirect_after_login' => home_url()
-    );
-    if (!get_option(WPLR_OPTION_NAME)) {
-        update_option(WPLR_OPTION_NAME, $default_settings);
+    public static function get_instance() {
+        if ( self::$instance == null ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
     }
-}
 
-// Plugin deactivation: Cleanup settings
-function wplr_deactivate() {
-    delete_option(WPLR_OPTION_NAME);
-}
-
-// Create admin menu
-function wplr_create_menu() {
-    add_menu_page('Login Redirect Settings', 'Login Redirect', 'manage_options', 'wplr-settings', 'wplr_settings_page', 'dashicons-lock');
-}
-
-// Admin settings page
-function wplr_settings_page() {
-    $settings = get_option(WPLR_OPTION_NAME);
-    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-        check_admin_referer('wplr_settings_nonce');
-        $settings['enable_redirect'] = isset($_POST['enable_redirect']) ? true : false;
-        $settings['custom_login_url'] = sanitize_text_field($_POST['custom_login_url']);
-        $settings['redirect_after_login'] = esc_url_raw($_POST['redirect_after_login']);
-        update_option(WPLR_OPTION_NAME, $settings);
-        echo '<div class="updated"><p>Settings updated.</p></div>';
+    private function __construct() {
+        add_action( 'admin_menu', [ $this, 'register_admin_page' ] );
+        add_action( 'admin_init', [ $this, 'register_settings' ] );
+        add_action( 'login_init', [ $this, 'maybe_redirect_login' ] );
+        add_action( 'init', [ $this, 'handle_post_login_redirect' ] );
+        add_shortcode( 'elvo_login_form', [ $this, 'render_login_form_shortcode' ] );
+        add_action( 'admin_notices', [ $this, 'maybe_show_admin_notice' ] );
     }
-    ?>
-    <div class="wrap">
-        <h2><span class="dashicons dashicons-lock"></span> Login Redirect & Security - By ELVO Web Studio</h2>
-        <form method="post" style="max-width: 500px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-            <?php wp_nonce_field('wplr_settings_nonce'); ?>
-            <label><strong>Enable Custom Login URL:</strong></label>
-            <input type="checkbox" name="enable_redirect" value="1" <?php checked($settings['enable_redirect'], true); ?>>
-            <br><br>
-            <label><strong>Custom Login URL:</strong></label>
-            <input type="text" name="custom_login_url" value="<?php echo esc_attr($settings['custom_login_url']); ?>" class="regular-text">
-            <br><br>
-            <label><strong>Redirect After Login:</strong></label>
-            <input type="text" name="redirect_after_login" value="<?php echo esc_url($settings['redirect_after_login']); ?>" class="regular-text">
-            <br><br>
-            <input type="submit" value="Save Settings" class="button button-primary">
-        </form>
-        <p style="margin-top: 20px; font-size: 14px; color: #666;">Developed by <a href="https://www.elvoweb.com" target="_blank">ELVO Web Studio</a></p>
-    </div>
-    <?php
-}
 
-// Redirect login page, but exclude logout requests
-function wplr_redirect_login_page() {
-    $settings = get_option(WPLR_OPTION_NAME);
+    public function register_admin_page() {
+        add_options_page(
+            'ELVO Login Redirects',
+            'ELVO Login Redirects',
+            'manage_options',
+            'elvo-login-redirects',
+            [ $this, 'settings_page_html' ]
+        );
+    }
+
+    public function register_settings() {
+        register_setting( 'elvo_login_redirects_group', $this->option_key );
+    }
+
+    public function settings_page_html() {
+        $options = get_option( $this->option_key );
+        ?>
+        <div class="wrap">
+            <h1>ELVO Login Redirects</h1>
+            <form method="post" action="options.php">
+                <?php settings_fields( 'elvo_login_redirects_group' ); ?>
+                <table class="form-table">
+                    <tr valign="top">
+                        <th scope="row">Enable Redirection</th>
+                        <td><input type="checkbox" name="<?php echo $this->option_key; ?>[enabled]" value="1" <?php checked( 1, $options['enabled'] ?? 0 ); ?> /></td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row">Custom Login Page URL</th>
+                        <td><input type="text" placeholder="https://yourdomain.com/login" name="<?php echo $this->option_key; ?>[login_page]" value="<?php echo esc_attr( $options['login_page'] ?? '' ); ?>" class="regular-text" /></td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row">Redirect After Login (URL)</th>
+                        <td><input type="text" placeholder="https://yourdomain.com/redirection-page" name="<?php echo $this->option_key; ?>[after_login]" value="<?php echo esc_attr( $options['after_login'] ?? '' ); ?>" class="regular-text" /></td>
+                    </tr>
+                </table>
+                <?php submit_button(); ?>
+            </form>
+        </div>
+        <?php
+    }
+
+    public function maybe_redirect_login() {
+        $options = get_option( $this->option_key );
     
-    // Check if redirection is enabled
-    if ($settings['enable_redirect']) {
-        $request_uri = $_SERVER['REQUEST_URI'];
-        
-        // Allow logout to work properly
-        if (strpos($request_uri, 'wp-login.php?action=logout') !== false) {
-            return;
+        if ( isset( $options['enabled'] ) && $options['enabled'] ) {
+            $requested_page = $_SERVER['REQUEST_URI'];
+    
+            // Only redirect default login page
+            if ( strpos( $requested_page, 'wp-login.php' ) !== false && ! isset( $_GET['action'] ) ) {
+                $target_url = ! empty( $options['login_page'] ) ? $options['login_page'] : home_url();
+                wp_redirect( esc_url( $target_url ) );
+                exit;
+            }
         }
-        
-        // Redirect login page
-        if (strpos($request_uri, 'wp-login.php') !== false) {
-            wp_redirect(home_url('/' . $settings['custom_login_url']));
-            exit;
+    }
+    
+
+    public function handle_post_login_redirect() {
+        $options = get_option( $this->option_key );
+        if ( isset( $options['enabled'] ) && $options['enabled'] && ! empty( $options['after_login'] ) ) {
+            add_filter( 'login_redirect', function( $redirect_to, $request, $user ) use ( $options ) {
+                return esc_url( $options['after_login'] );
+            }, 10, 3 );
         }
+    }
+
+    public function maybe_show_admin_notice() {
+        $options = get_option( $this->option_key );
+        if ( isset( $options['enabled'] ) && $options['enabled'] ) {
+            $page_url = $options['login_page'] ?? '';
+            if ( ! empty( $page_url ) && ! url_to_postid( $page_url ) ) {
+                echo '<div class="notice notice-error"><p><strong>ELVO Login Redirects:</strong> The custom login page URL does not exist. Please update it in the plugin settings.</p></div>';
+            }
+        }
+    }
+
+    public function render_login_form_shortcode() {
+        if ( is_user_logged_in() ) {
+            return '<p>You are already logged in.</p>';
+        }
+
+        ob_start();
+        wp_login_form();
+        return ob_get_clean();
     }
 }
 
-//plugin update checker
-require plugin_dir_path(__FILE__) . 'plugin-update-checker/plugin-update-checker.php';
-
-$myUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
-    'https://github.com/raihan73/custom-login-manager/',
-    __FILE__,
-    'custom-login-manager'
-);
-
-// Optional if you're using GitHub Releases:
-$myUpdateChecker->getVcsApi()->enableReleaseAssets();
-
-?>
+ELVO_LoginRedirects::get_instance();
