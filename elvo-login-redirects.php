@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: ELVO Login Redirects
- * Description: Redirects the default login page to a custom page. Allows admin configuration.
- * Version: 1.2.0
+ * Description: Redirects the default login page to a custom page.
+ * Version: 1.3.0
  * Author: ELVO Web Studio
  * Author URI: https://www.elvoweb.com
  * Plugin URI: https://www.elvoweb.com
@@ -120,7 +120,7 @@ class ELVO_LoginRedirects {
         return ob_get_clean();
     }
 }
-
+//Online update functionality
 require_once plugin_dir_path(__FILE__) . 'plugin-update-checker/plugin-update-checker.php';
 
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
@@ -131,7 +131,6 @@ $updateChecker = PucFactory::buildUpdateChecker(
     'elvo-login-redirects'
 );
 
-// Optional: If you're using a different branch (like main instead of master)
 $updateChecker->setBranch('main');
 
 
