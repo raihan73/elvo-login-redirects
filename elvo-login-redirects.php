@@ -121,4 +121,19 @@ class ELVO_LoginRedirects {
     }
 }
 
+require_once plugin_dir_path(__FILE__) . 'plugin-update-checker/plugin-update-checker.php';
+
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+$updateChecker = PucFactory::buildUpdateChecker(
+    'https://github.com/raihan73/elvo-login-redirects/',
+    __FILE__,
+    'elvo-login-redirects'
+);
+
+// Optional: If you're using a different branch (like main instead of master)
+$updateChecker->setBranch('main');
+
+
+
 ELVO_LoginRedirects::get_instance();
